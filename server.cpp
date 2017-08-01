@@ -9,8 +9,12 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-int thread_fd[2]={-1,-1},thread_ck[2]= {0,0};
-sem_t sem_id[2];
+#define thr_num 5
+
+
+int thread_fd[thr_num]={-1,-1,-1,-1,-1};
+bool thread_ck[thr_num]={true,true,true,true,true};
+sem_t sem_id[thr_num];
 
 
 void error(const char *msg)
@@ -30,21 +34,22 @@ void creat_sem()
 			exit(EXIT_FAILURE);
 		}
     }
-
 }
 
-void *thread_1(void* )
+void *thread(void* ptr)
 {
-	int fd=-1,n;
+	int fd=-1,n,thread_num;
 	char buffer[256];
+	thread_num=*(int *)ptr;
+	printf("thread %d created \n",thread_num);
 	while(1)
 	{
-		sem_wait(&sem_id[1]);
-		thread_ck[1]=1;
-		if(thread_fd[1]!=-1)
+		sem_wait(&sem_id[thread_num]);
+		thread_ck[thread_num]=false;
+		if(thread_fd[thread_num]!=-1)
 		{
 
-		fd=thread_fd[1];
+		fd=thread_fd[thread_num];
 		bzero(buffer,256);
 		n=read(fd,buffer,256);
 
@@ -52,47 +57,15 @@ void *thread_1(void* )
 		{
 			close(fd);
 			printf("Client %d is off line\n",fd-4);
-			thread_fd[1]=-1;
-			thread_ck[1]=0;
+			thread_fd[thread_num]=-1;
+			thread_ck[thread_num]=true;
 			continue;
 		}
 
 		printf("Message from : %d\n",fd-4);
 		printf("Here is the message: %s\n",buffer);
 		write(fd,"Message received",17);
-		thread_ck[1]=0;
-		}
-	}
-	return 0;
-}
-
-void *thread_2(void* )
-{
-	int fd=-1,n;
-	char buffer[256];
-	while(1)
-	{
-		sem_wait(&sem_id[2]);
-		thread_ck[2]=1;
-		if(thread_fd[2]!=-1)
-		{
-
-		fd=thread_fd[2];
-		bzero(buffer,256);
-		n=read(fd,buffer,256);
-
-		if (n==0)
-		{
-			close(fd);
-			printf("Client %d is off line\n",fd-4);
-			thread_fd[2]=-1;
-			continue;
-		}
-
-		printf("Message from : %d\n",fd-4);
-		printf("Here is the message: %s\n",buffer);
-		write(fd,"Message received",17);
-		thread_ck[2]=0;
+		thread_ck[thread_num]=true;
 		}
 	}
 	return 0;
@@ -100,19 +73,15 @@ void *thread_2(void* )
 
 void creat_thread(pthread_t pid[1])
 {
-	int ret;
-    ret=pthread_create(&pid[0],NULL,thread_1,NULL);
-    if(ret!=0)
+	int ret,b=0;
+    for(int a=0;a<thr_num;a++)
     {
-        printf("Create thread 1 error!\n");
+    	b=a+1;
+    	ret=pthread_create(&pid[a],NULL,thread,&b);
+    	sleep(0.1);
+    	if(ret!=0)
+    		printf("Create thread %d error!\n",b);
     }
-
-    ret=pthread_create(&pid[1],NULL,thread_2,NULL);
-    if(ret!=0)
-    {
-        printf("Create thread 2 error!\n");
-    }
-
 }
 
 void check_port(int portno)
@@ -191,9 +160,9 @@ int main(int argc, char *argv[])
     		    int conn_fd;
     			if((conn_fd=events[i].data.fd)<0)
     				continue ;
-    			for(int a=1;a<3;a++)
+    			for(int a=1;a<(thr_num+1);a++)
     			{
-    				if(thread_ck[a]==0)
+    				if(thread_ck[a]==true)
     				{
     					thread_fd[a]=conn_fd;
     					sem_post(&sem_id[a]);
