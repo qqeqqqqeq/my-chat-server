@@ -53,7 +53,7 @@ void *ReadSocket(void* ptr) {
     return 0;
 }
 
-void *WriteSoctet(void* ptr) {
+void *WriteSocket(void* ptr) {
 	int n = 0;
 	char buffer[256],set_name[20]="set_name:";
 	printf("Please set you user name: ");
@@ -93,7 +93,7 @@ void CheckFd(int socketfd) {
 
 
 int main(int argc, char *argv[]) {
-    int sockfd, portno,ret;
+    int sockfd, portno,ret,n;
     pthread_t pid[2];
     struct sockaddr_in serv_addr;
     struct hostent *server;
@@ -127,13 +127,12 @@ int main(int argc, char *argv[]) {
     	exit(EXIT_FAILURE);
     }
     sleep(0.5);
-    ret = pthread_create(&pid[2],NULL,WriteSoctet,NULL);
+    ret = pthread_create(&pid[2],NULL,WriteSocket,NULL);
     if (ret != 0) {
     	printf("Create write thread error!\n");
     	exit(EXIT_FAILURE);
     }
-
-    while (1) {}
+    n = pthread_join(pid[1],NULL);
     return 0;
 }
 
