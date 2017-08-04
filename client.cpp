@@ -46,21 +46,29 @@ void *ReadSocket(void* ptr) {
 			}
 
 			else if (n > 0) {
-				printf("Receive a message :%s \n",buffer);
+				printf("\nReceive a message :%s ",buffer);
 			}
 		}
     }
     return 0;
 }
 
-
 void *WriteSoctet(void* ptr) {
 	int n = 0;
-	char buffer[256];
+	char buffer[256],set_name[20]="set_name:";
+	printf("Please set you user name: ");
+	bzero(buffer,sizeof(buffer));
+	fgets(buffer,100,stdin);
+	strcat(set_name,buffer);
+	n = write(g_connected_socketfd,set_name,strlen(set_name));
+	if (n < 0) {
+		printf("ERROR setting user name");
+		exit(EXIT_FAILURE);
+	}
 	while (1) {
 		printf("Please enter the message: ");
-		bzero(buffer,256);
-		fgets(buffer,255,stdin);
+		bzero(buffer,sizeof(buffer));
+		fgets(buffer,sizeof(buffer),stdin);
 		n = write(g_connected_socketfd,buffer,strlen(buffer));
 		if (n < 0) {
 			printf("ERROR writing to socket");
@@ -68,8 +76,6 @@ void *WriteSoctet(void* ptr) {
 		}
 	}
 }
-
-
 
 void CheckPort(int portno,char *b[]) {
     if (portno < 3) {
@@ -84,7 +90,6 @@ void CheckFd(int socketfd) {
         exit(EXIT_FAILURE);
     }
 }
-
 
 
 int main(int argc, char *argv[]) {
@@ -121,7 +126,7 @@ int main(int argc, char *argv[]) {
     	printf("Create read thread error!\n");
     	exit(EXIT_FAILURE);
     }
-
+    sleep(0.5);
     ret = pthread_create(&pid[2],NULL,WriteSoctet,NULL);
     if (ret != 0) {
     	printf("Create write thread error!\n");
